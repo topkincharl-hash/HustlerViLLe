@@ -1,0 +1,33 @@
+{
+  "buildId": "uuid",
+  "agentMode": "BUILD",
+  "timestamp": 0,
+  "source": {
+    "branch": "main",
+    "commit": "abc123"
+  },
+  "build": {
+    "type": "release | debug | hotfix",
+    "modules": ["feature-chat", "feature-remote"],
+    "optimizations": {
+      "minify": true,
+      "shrinkResources": true,
+      "obfuscation": true
+    }
+  },
+  "environment": {
+    "jdk": "17",
+    "gradle": "8.x"
+  },
+  "secrets": {
+    "useKeystore": true
+  },
+  "output": {
+    "artifactType": "apk | aab",
+    "uploadRelease": true
+  },
+  "telemetry": {
+    "reportBack": true,
+    "streamLogs": true
+  }
+}
