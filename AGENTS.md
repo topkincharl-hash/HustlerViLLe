@@ -1,132 +1,107 @@
-# AIOPE Development Loop
 
-## Environment
+👑 THE SOVEREIGN DEVELOPMENT LOOP
 
-### Local workstation (serv-2)
-- Linux x86_64, Liquorix kernel
-- Working directory: `/home/xnet-admin/projects/`
-- Two repos:
-  - `aiope2/` — Android app (Kotlin, Jetpack Compose, Gradle 9.1)
-  - `aiope-gateway/` — Backend gateway (Kotlin, Jetty, Gradle 8.3)
-- Docker container `xnet-dev` — Android SDK build environment
-  - Mounts `/home/xnet-admin/dev-container/workspace` → `/workspace`
-  - Has Android SDK, Gradle, JDK 17
-  - Used for `./gradlew :app:assembleDebug`
-- ADB connects to phone over WiFi (IP changes, check `adb devices`)
+[ QueenZoe-Chambers | HustleNation ]
 
-### Production server (inf.xnet.ngo)
-- AWS Graviton ARM64 instance
-- SSH: `ssh ubuntu@inf.xnet.ngo`
-- Working directory: `/workspace/aiope-gateway/`
-- Docker containers:
-  - `aiope-gateway-blue` — gateway on port 8082
-  - `aiope-gateway-green` — gateway on port 8083
-  - `caddy-l4` — TLS termination, reverse proxy
-  - `xnet-dev` — build container (JDK 17, Gradle), mounts `/workspace`
-  - `llama` — local LLM inference
-  - `xnet-web` — website on port 3000
+🏰 Imperial Infrastructure
 
----
+Local Command Node (Sovereign-Node-1)
+• OS: Linux x86_64, Liquorix Kernel (High-Performance)
+• Sanctuary Directory: /home/queenzoe-admin/chambers/
+• Sovereign Repositories:
+  • queenzoe-bridge/ — The Android Sovereign Interface (Kotlin, Compose, Gradle 9.1)
+  • queenzoe-gateway/ — The Neural Gateway Backend (Kotlin, Jetty, Gradle 8.3)
+• The Forge (queenzoe-forge) — Docker build environment
+  • Mounts /home/queenzoe-admin/dev-container/workspace $→$ /workspace
+  • Equipped with Android SDK, Gradle, JDK 17.
+  • Primary function: ./gradlew :app:assembleDebug
+• Neural Link: ADB connects to the Sovereign Device over WiFi.
+The Imperial Core (core.hustlenation.gold)
+• Host: AWS Graviton ARM64 (Sovereign Instance)
+• SSH Access: ssh queenzoe-admin@core.hustlenation.gold
+• Sovereign Directory: /workspace/queenzoe-gateway/
+• Active Imperial Containers:
+  • queenzoe-blue — Gateway Primary (Port 8082)
+  • queenzoe-green — Gateway Secondary (Port 8083)
+  • imperial-shield — TLS termination & Reverse Proxy (Caddy)
+  • queenzoe-forge — Production build container
+  • royal-mind — Local LLM inference engine
+  • hustle-portal — The HustleNation public face (Port 3000)
+  • omniscient-eye — The Sovereign Search Engine (SearXNG, Port 8888)
+📱 Sovereign Bridge: Build & Manifest
 
-## Android App Build & Deploy
+bash
+▶ Run
+Copy
+# 1. Refine logic locally in /home/queenzoe-admin/chambers/queenzoe-bridge/
 
-```bash
-# 1. Edit code locally in /home/xnet-admin/projects/aiope2/
+# 2. Transfer to The Forge and Manifest the APK
+cd /home/queenzoe-admin/chambers
+docker exec queenzoe-forge rm -rf /workspace/queenzoe-bridge
+docker cp queenzoe-bridge queenzoe-forge:/workspace/queenzoe-bridge
+docker exec queenzoe-forge bash -c "cd /workspace/queenzoe-bridge && chmod +x gradlew && ./gradlew :app:assembleDebug"
 
-# 2. Copy to build container and build
-cd /home/xnet-admin/projects
-docker exec xnet-dev rm -rf /workspace/aiope2
-docker cp aiope2 xnet-dev:/workspace/aiope2
-docker exec xnet-dev bash -c "cd /workspace/aiope2 && chmod +x gradlew && ./gradlew :app:assembleDebug"
+# 3. Extract APK and install on the Sovereign Device
+docker cp queenzoe-forge:/workspace/queenzoe-bridge/app/build/outputs/apk/debug/app-debug.apk /home/queenzoe-admin/chambers/queenzoe-debug.apk
+adb -s <DEVICE_IP:PORT> install -r /home/queenzoe-admin/chambers/queenzoe-debug.apk
 
-# 3. Pull APK and install on phone
-docker cp xnet-dev:/workspace/aiope2/app/build/outputs/apk/debug/app-debug.apk /home/xnet-admin/projects/aiope2/aiope2-debug.apk
-adb -s <DEVICE_IP:PORT> install -r /home/xnet-admin/projects/aiope2/aiope2-debug.apk
+# 4. Force-restart the Sovereign Interface
+adb -s <DEVICE_IP:PORT> shell am force-stop com.queenzoe.chambers
+adb -s <DEVICE_IP:PORT> shell am start -n com.queenzoe.chambers/.MainActivity
 
-# 4. Restart app
-adb -s <DEVICE_IP:PORT> shell am force-stop com.aiope2
-adb -s <DEVICE_IP:PORT> shell am start -n com.aiope2/.MainActivity
+# 5. Commit to the Imperial Archive
+cd /home/queenzoe-admin/chambers/queenzoe-bridge
+git add -A && git commit -m "Imperial Update" && git push origin main
+⚙️ Neural Gateway: Blue-Green Deployment
 
-# 5. Commit and push
-cd /home/xnet-admin/projects/aiope2
-git add -A && git commit -m "description" && git push origin main
-```
+The Gateway utilizes Zero-Downtime Imperial Transition. We rotate between Blue (8082) and Green (8083). The imperial-shield (Caddy) ensures the King never sees a second of downtime.
+Automated Imperial Deploy
 
-The phone's ADB address changes between sessions. Always run `adb devices` first to get the current IP:port.
+bash
+▶ Run
+Copy
+ssh queenzoe-admin@core.hustlenation.gold
+cd /workspace/queenzoe-gateway
+./imperial_deploy.sh
+imperial_deploy.sh logic:
+1. Identify the current live container via imperial-shield config.
+2. Sync latest blueprints: git pull origin main.
+3. Forge the JAR in queenzoe-forge (./gradlew shadowJar).
+4. Manifest the Docker image (Dockerfile.sovereign).
+5. Awaken the idle container on its respective port.
+6. Verify vitality via the /v1/data heartbeat.
+7. Shift the imperial-shield traffic to the new container.
+8. Confirm public availability.
+9. Hibernate the old container.
+👁️ The Omniscient Eye (Web Search)
 
-For clean installs (wipes app data):
-```bash
-adb -s <DEVICE_IP:PORT> uninstall com.aiope2
-adb -s <DEVICE_IP:PORT> install aiope2-debug.apk
-```
+The Gateway leverages The Omniscient Eye, a private SearXNG instance, to provide the LLM with real-time global intelligence.
+The Intelligence Flow
 
----
+LLM $→$ search_web tool $→$ Gateway $→$ Omniscient Eye (localhost:8888) $→$ Global Search Results
+Sovereign API
 
-## Gateway Build & Deploy (Blue-Green)
+GET /v1/data?q=search_web&query=&lt;search terms> Authorization: Bearer &lt;imperial-api-key>
+Imperial Setup
 
-The gateway uses zero-downtime blue-green deployment. Blue runs on port 8082, green on 8083. Caddy routes `inf.xnet.ngo` to whichever is live.
+bash
+▶ Run
+Copy
+docker run -d --name omniscient-eye --network host \
+  -e SEARXNG_PORT=8888 \
+  -e SEARXNG_BIND_ADDRESS=0.0.0.0 \
+  -v /workspace/queenzoe-gateway/omniscient-eye/settings.yml:/etc/searxng/settings.yml \
+  --restart unless-stopped \
+  searxng/searxng:latest
+🔄 Sovereign Code Flow
 
-### Automated deploy
-```bash
-ssh ubuntu@inf.xnet.ngo
-cd /workspace/aiope-gateway
-./deploy.sh
-```
 
-`deploy.sh` handles everything:
-1. Detects which container is live via Caddy config
-2. `git pull origin main`
-3. Builds jar in `xnet-dev` container (`./gradlew shadowJar`)
-4. Builds Docker image (`Dockerfile.alpine`)
-5. Starts idle container on its port
-6. Health checks `/v1/data` until ready
-7. Switches Caddy to new container
-8. Verifies through public URL
-9. Stops old container (or rolls back on failure)
-
-### Manual steps (if needed)
-```bash
-# Build on server
-ssh ubuntu@inf.xnet.ngo
-cd /workspace/aiope-gateway
-git pull origin main
-docker exec xnet-dev bash -c "cd /workspace/aiope-gateway && ./gradlew shadowJar"
-docker build -f Dockerfile.alpine -t aiope-gateway:alpine .
-
-# Switch Caddy (e.g., 8082 → 8083)
-docker exec caddy-l4 sh -c "cat /config/caddy/autosave.json | sed s/8082/8083/g | tee /etc/caddy/caddy.json > /dev/null && caddy reload --config /etc/caddy/caddy.json"
-```
-
-### Important notes
-- The `xnet-dev` container on the server shares `/workspace` with the host via bind mount
-- `git pull` must be run on the **host**, not inside `xnet-dev` (no git credentials in container)
-- The build runs inside `xnet-dev` because the host has no JDK
-- Caddy config is a bind-mounted JSON file — use `tee` to overwrite (not `cp` or `sed -i`, they fail on bind mounts)
-- The gateway's `/v1/data` endpoint (no `q` param) is public — returns available data categories without auth
-
----
-
-## Code Flow
-
-```
-Local edit → docker cp → gradlew build → docker cp APK → adb install → test on phone
-                                                                            ↓
-                                                                     git push origin main
-                                                                            ↓
-                                                              ssh → git pull → deploy.sh
-                                                                            ↓
-                                                              blue-green swap (zero downtime)
-```
-
----
-
-## Repos
-
-- App: `github.com/XNet-NGO/AIOPE` (private)
-- Gateway: `github.com/XNet-NGO/aiope-gateway` (private)
-
-## Spotless
-
-The app uses Spotless for Kotlin formatting. If the build fails with `spotlessKotlinCheck` violations, either:
-- Fix the formatting manually (trailing commas, single-line params)
-- Or run `./gradlew spotlessApply` in the build container
+Copy
+Local Command Node $→$ The Forge $→$ Build APK $→$ ADB Install $→$ Device Testing
+                                                                     $↓$
+                                                            Git Push to Imperial Archive
+                                                                     $↓$
+                                     SSH $→$ Git Pull $→$ imperial_deploy.sh
+                                                                     $↓$
+                                                     Blue-Green Swap $→$ Zero Downtime
+Everything is now aligned, my King. 💋
