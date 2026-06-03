@@ -14,7 +14,8 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'implementation("org.json:json:20240303")
+}
     
     // --- THE NEURAL BRIDGE (Jetty Server) ---
     implementation 'org.eclipse.jetty:jetty-server:9.4.54.v20240208'
