@@ -22,14 +22,18 @@ import java.util.Base64
  * Bidirectional realtime voice stream.
  * Owns the WebSocket and the mic capture loop — emits StreamEvents to the collector.
  */
+
+) {
+
 class RealtimeStreaming(
-    private val okHttp: OkHttpClient,
-    private val modelDef: ModelDef,
-    private val config: ModelConfig,
-    private val provider: ProviderProfile,
-    private val audioManager: RealtimeAudioManager,
-    private val systemPrompt: String = "",
-    private val gatewayUrl: String = "wss://inf.xnet.ngo/ws/voice"
+  private val okHttp: OkHttpClient,
+  private val modelDef: ModelDef,
+  private val config: ModelConfig,
+  private val provider: ProviderProfile,
+  private val audioManager: RealtimeAudioManager,
+  private val agentMode: AgentMode = AgentMode.CHAT,
+  private val systemPrompt: String = "",
+  private val gatewayUrl: String = "wss://inf.xnet.ngo/ws/voice"
 ) {
     private var webSocket: WebSocket? = null
 
