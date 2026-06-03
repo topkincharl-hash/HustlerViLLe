@@ -1,11 +1,11 @@
-name: QueenZoe Build Executor
+name: QueenZoe CI Executor
 
 on:
   workflow_dispatch:
     inputs:
       buildIntent:
-        description: "Base64 encoded QueenZoe build intent"
         required: true
+        description: "Base64 encoded QueenZoe build intent"
 
 jobs:
   build:
@@ -15,10 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Decode Build Intent
+      - name: Decode Intent
         run: |
-          echo "${{ inputs.buildIntent }}" | base64 -d > build-intent.json
-          cat build-intent.json
+          echo "${{ inputs.buildIntent }}" | base64 -d > intent.json
+          cat intent.json
 
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -29,12 +29,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/gradle-build-action@v3
 
-      - name: Build with QueenZoe Intent
-        run: |
-          ./gradlew assembleRelease
+      - name: Build Release
+        run: ./gradlew assembleRelease
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: queenzoe-build
+          name: queenzoe-artifact
           path: app/build/outputs/
