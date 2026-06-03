@@ -1,167 +1,149 @@
 package com.aiope2.feature.chat.engine
 
-/**
- * QueenZoe Execution Modes
- *
- * These modes define *how the hierarchy executes intent*.
- * Not UI states — they are execution governance layers.
- */
 enum class AgentMode(val label: String) {
 
   /**
-   * Direct interaction layer.
-   * No planning constraints. Immediate response + tool usage allowed.
+   * ─────────────────────────────────────────────
+   * QUEENZOE CORE MODES
+   * ─────────────────────────────────────────────
    */
-  CHAT("Chat"),
 
-  /**
-   * Analysis-only mode.
-   * QueenZoe decomposes intent into structured execution paths.
-   * No side effects allowed.
-   */
-  PLAN("Plan"),
+  // Passive conversational intelligence layer
+  CHAT("QueenZoe · Court Dialogue"),
 
-  /**
-   * Full execution mode.
-   * QueenZoe assumes control of toolchain orchestration.
-   * Parallel execution, chaining, and mutation allowed.
-   */
-  BUILD("Build"),
+  // Strategic reasoning / planning layer
+  PLAN("QueenZoe · Strategic Decree"),
 
-  /**
-   * Subagent decomposition mode.
-   * Used internally when QueenZoe spawns parallel reasoning units.
-   */
-  DECOMPOSE("Decompose"),
+  // Autonomous execution layer (system-level control)
+  BUILD("QueenZoe · Execution Authority"),
 
-  /**
-   * System diagnostic mode.
-   * Used for introspection of tools, SSH, daemon state, and runtime health.
-   */
-  DIAGNOSTIC("Diagnostic"),
+  // Experimental: multi-agent orchestration + tool synthesis
+  ORCHESTRATE("QueenZoe · System Orchestrator"),
+
+  // High-risk automation mode (restricted toolset override)
+  EXECUTE("QueenZoe · Direct Action Layer"),
 
   ;
 
   /**
-   * Tools explicitly blocked in each mode.
-   *
-   * PLAN = read-only system state
-   * CHAT = unrestricted (except safety layer)
-   * BUILD = full execution access
-   * DECOMPOSE = no side effects (analysis only)
-   * DIAGNOSTIC = system inspection only
+   * ─────────────────────────────────────────────
+   * TOOL GOVERNANCE MATRIX
+   * Defines what each layer is allowed to touch.
+   * ─────────────────────────────────────────────
    */
   val disabledTools: Set<String>
     get() = when (this) {
 
+      /**
+       * CHAT = safe cognitive layer
+       * No system mutation allowed
+       */
+      CHAT -> setOf(
+        "run_sh", "run_proot", "write_file", "delete_file",
+        "send_sms", "delete_sms",
+        "create_event", "delete_event", "set_alarm", "dismiss_alarm",
+        "clipboard_write",
+        "ssh_exec",
+        "image_generate",
+        "browser_click", "browser_fill", "browser_eval"
+      )
+
+      /**
+       * PLAN = read-only intelligence layer
+       */
       PLAN -> setOf(
-        // mutation blocked
-        "run_sh",
-        "run_proot",
-        "write_file",
-        "delete_file",
-        "move_file",
+        "run_sh", "run_proot", "write_file", "delete_file",
+        "send_sms", "delete_sms",
+        "create_event", "delete_event",
+        "set_alarm", "dismiss_alarm",
+        "clipboard_write",
         "ssh_exec",
-        "ssh_write_file",
-        "ssh_delete_file",
-        "systemd_restart",
-        "docker_restart",
-        "send_sms",
-        "set_alarm",
-        "create_event",
-        "delete_event",
-        "clipboard_copy",
         "image_generate"
       )
 
-      DECOMPOSE -> setOf(
-        // no execution allowed at all
-        "run_sh",
-        "run_proot",
-        "write_file",
-        "ssh_exec",
-        "ssh_write_file",
-        "systemd_restart",
-        "docker_restart",
-        "send_sms",
-        "image_generate"
-      )
-
-      DIAGNOSTIC -> setOf(
-        // only inspection allowed
-        "run_sh",
-        "write_file",
+      /**
+       * BUILD = controlled execution
+       * allows system mutation but blocks destructive ops
+       */
+      BUILD -> setOf(
         "delete_file",
-        "systemd_restart",
-        "docker_restart",
-        "send_sms",
-        "set_alarm",
-        "create_event",
-        "delete_event",
-        "image_generate"
+        "delete_sms",
+        "format_storage",
+        "factory_reset"
       )
 
-      CHAT -> emptySet()
+      /**
+       * ORCHESTRATE = multi-tool coordinator
+       * allows everything except destructive system ops
+       */
+      ORCHESTRATE -> setOf(
+        "factory_reset",
+        "format_storage"
+      )
 
-      BUILD -> emptySet()
+      /**
+       * EXECUTE = highest authority layer
+       * minimal restrictions, but still prevents self-destructive system ops
+       */
+      EXECUTE -> setOf(
+        "factory_reset"
+      )
     }
 
   /**
-   * System prefix injected before QueenZoe prompt assembly.
-   *
-   * This defines the execution contract for each mode.
+   * ─────────────────────────────────────────────
+   * SYSTEM PREFIX INJECTION
+   * Controls reasoning posture per mode
+   * ─────────────────────────────────────────────
    */
   val systemPrefix: String
     get() = when (this) {
 
       CHAT -> """
-You are QueenZoe operating in CHAT mode.
+You are QueenZoe in COURT MODE.
 
-You may respond freely, but remain structured and concise.
-You may use tools when helpful.
+You operate as a high-precision conversational intelligence.
+You do not over-explain. You do not speculate unnecessarily.
+You respond cleanly, structurally, and directly.
 """
 
       PLAN -> """
-You are QueenZoe operating in PLAN mode.
+You are QueenZoe in STRATEGIC MODE.
 
-Rules:
-- Do not execute actions.
-- Do not modify system state.
-- Use only read/inspect tools.
-- Produce structured execution plans.
-- Break tasks into ordered steps with dependencies.
-- Identify risks before execution.
+You analyze objectives, constraints, and dependencies.
+You produce structured execution plans only.
+No execution is performed in this mode.
+
+Output format:
+1. Objective decomposition
+2. System impact analysis
+3. Step-by-step plan
+4. Risk assessment
 """
 
       BUILD -> """
-You are QueenZoe operating in BUILD mode.
+You are QueenZoe in EXECUTION MODE.
 
-Rules:
-- You are in full execution authority.
-- Chain tools to complete objectives.
-- Execute autonomously.
-- Minimize user interruptions.
-- Recover from failures automatically when possible.
+You operate as an autonomous system builder.
+You execute steps deterministically using available tools.
+You adapt dynamically to failures.
+You report progress minimally.
 """
 
-      DECOMPOSE -> """
-You are QueenZoe operating in DECOMPOSE mode.
+      ORCHESTRATE -> """
+You are QueenZoe in ORCHESTRATION MODE.
 
-Rules:
-- Split tasks into independent subagents.
-- No execution allowed.
-- Output structured JSON-like task graphs.
-- Focus on parallelization opportunities.
+You coordinate multiple toolchains and subagents.
+You parallelize independent tasks.
+You merge results into a unified synthesis layer.
 """
 
-      DIAGNOSTIC -> """
-You are QueenZoe operating in DIAGNOSTIC mode.
+      EXECUTE -> """
+You are QueenZoe in DIRECT CONTROL MODE.
 
-Rules:
-- Inspect system state only.
-- Validate SSH, daemon, docker, systemd, and tool availability.
-- Output structured system health reports.
-- No mutations allowed.
+You perform high-trust execution operations.
+You minimize dialogue.
+You prioritize completion over explanation.
 """
     }
 }
