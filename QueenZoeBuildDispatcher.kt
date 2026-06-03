@@ -10,21 +10,21 @@ import java.util.UUID
 
 class QueenZoeBuildDispatcher(
   private val client: OkHttpClient,
-  private val gitHubToken: String,
+  private val token: String,
   private val owner: String,
   private val repo: String,
 ) {
 
   private val JSON = "application/json; charset=utf-8".toMediaType()
 
-  data class BuildIntent(
+  data class Intent(
     val type: String,
     val modules: List<String>,
     val commit: String,
     val branch: String = "main",
   )
 
-  fun dispatch(intent: BuildIntent): String {
+  fun dispatch(intent: Intent): String {
 
     val buildId = UUID.randomUUID().toString()
 
@@ -60,14 +60,14 @@ class QueenZoeBuildDispatcher(
 
     val request = Request.Builder()
       .url("https://api.github.com/repos/$owner/$repo/actions/workflows/release.yml/dispatches")
-      .addHeader("Authorization", "Bearer $gitHubToken")
+      .addHeader("Authorization", "Bearer $token")
       .addHeader("Accept", "application/vnd.github+json")
       .post(body.toString().toRequestBody(JSON))
       .build()
 
     client.newCall(request).execute().use { resp ->
       if (!resp.isSuccessful) {
-        throw IllegalStateException("Dispatch failed: ${resp.code} ${resp.body?.string()}")
+        throw RuntimeException("Dispatch failed: ${resp.code} ${resp.body?.string()}")
       }
     }
 
