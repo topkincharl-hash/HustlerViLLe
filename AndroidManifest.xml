@@ -1,0 +1,11 @@
+<manifest>
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Required for long-running build dispatch + logs sync -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Optional: if you later stream CI logs back -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+</manifest>
