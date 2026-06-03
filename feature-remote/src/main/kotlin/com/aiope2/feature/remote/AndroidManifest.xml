@@ -1,0 +1,17 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Network access for SSH + daemon -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Optional: wake locks for long deployments/jobs -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <application
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:allowBackup="false"
+        android:label="AIOPE Remote">
+
+    </application>
+
+</manifest>
