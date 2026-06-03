@@ -6,132 +6,135 @@ import kotlinx.coroutines.withContext
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.common.IOUtils
 import net.schmizz.sshj.xfer.FileSystemFile
-import java.security.Security // kept for potential future use
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
-data class ExecResult(val stdout: String, val stderr: String, val exitCode: Int)
+data class ExecResult(
+    val stdout: String,
+    val stderr: String,
+    val exitCode: Int,
+    val durationMs: Long = 0
+)
 
 @Singleton
 class SshSessionManager @Inject constructor() {
 
-  companion object {
-    init {
-      try {
-        // Do NOT register BouncyCastle as a global JCA provider.
-        // It registers "BKS" keystore type which R8 strips the SPI class for,
-        // causing "BKS not found" when Android's TLS stack tries to use it.
-        // SSHJ works fine with the system "BC" provider on Android 16+.
-        net.schmizz.sshj.common.SecurityUtils.setSecurityProvider(null)
-      } catch (_: Exception) {}
+    private val sessions = ConcurrentHashMap<String, SSHClient>()
+    private val knownHosts = ConcurrentHashMap<String, String>()
+
+    private fun normalizeKey(raw: String): String {
+        var key = raw.trim()
+        if (!key.contains("\n")) key = key.replace("\\n", "\n")
+        if (!key.endsWith("\n")) key += "\n"
+        return key
     }
-  }
 
-  private val sessions = ConcurrentHashMap<String, SSHClient>()
-  private val knownHosts = ConcurrentHashMap<String, String>() // "host:port" -> fingerprint
+    private fun loadKey(client: SSHClient, privateKey: String) =
+        client.loadKeys(
+            java.io.File.createTempFile("sshkey", ".pem")
+                .apply { writeText(normalizeKey(privateKey)) }
+                .absolutePath,
+            null as String?
+        )
 
-  private fun normalizeKey(raw: String): String {
-    var key = raw.trim()
-    if (!key.contains("\n")) key = key.replace("\\n", "\n")
-    if (!key.endsWith("\n")) key += "\n"
-    return key
-  }
+    private fun addTofuVerifier(client: SSHClient, host: String, port: Int) {
+        val key = "$host:$port"
 
-  private fun loadKey(client: SSHClient, privateKey: String): net.schmizz.sshj.userauth.keyprovider.KeyProvider {
-    val keyContent = normalizeKey(privateKey)
-    val tmp = java.io.File.createTempFile("sshkey", ".pem")
-    try {
-      tmp.writeText(keyContent)
-      return client.loadKeys(tmp.absolutePath, null as String?)
-    } finally {
-      tmp.delete()
-    }
-  }
-
-  /** TOFU verifier: trusts first-seen host key, rejects changes */
-  private fun addTofuVerifier(client: SSHClient, host: String, port: Int) {
-    val hostKey = "$host:$port"
-    client.addHostKeyVerifier(object : net.schmizz.sshj.transport.verification.HostKeyVerifier {
-      override fun verify(hostname: String?, p: Int, key: java.security.PublicKey?): Boolean {
-        val fp = net.schmizz.sshj.common.SecurityUtils.getFingerprint(key)
-        val stored = knownHosts[hostKey]
-        return if (stored == null) {
-          knownHosts[hostKey] = fp
-          true
-        } else {
-          stored == fp
+        client.addHostKeyVerifier { hostname, p, publicKey ->
+            val fp = net.schmizz.sshj.common.SecurityUtils.getFingerprint(publicKey)
+            val stored = knownHosts[key]
+            if (stored == null) {
+                knownHosts[key] = fp
+                true
+            } else stored == fp
         }
-      }
-      override fun findExistingAlgorithms(hostname: String?, port: Int): MutableList<String> = mutableListOf()
-    })
-  }
-
-  suspend fun connect(server: RemoteServerEntity): String = withContext(Dispatchers.IO) {
-    sessions[server.id]?.let { if (it.isConnected) return@withContext server.id }
-    val client = SSHClient()
-    addTofuVerifier(client, server.host, server.port)
-    client.connect(server.host, server.port)
-    val privateKey = server.privateKey
-    if (privateKey.isNullOrBlank()) {
-      client.disconnect()
-      throw IllegalStateException("No SSH private key configured for ${server.name}.")
     }
-    try {
-      client.authPublickey(server.user, loadKey(client, privateKey))
-    } catch (e: Exception) {
-      client.disconnect()
-      throw IllegalStateException("SSH auth failed for ${server.name}: ${e.message}")
+
+    suspend fun connect(server: RemoteServerEntity): String = withContext(Dispatchers.IO) {
+
+        sessions[server.id]?.let {
+            if (it.isConnected) return@withContext server.id
+        }
+
+        val client = SSHClient()
+        addTofuVerifier(client, server.host, server.port)
+
+        client.connect(server.host, server.port)
+
+        val key = server.privateKey
+            ?: throw IllegalStateException("Missing private key for ${server.name}")
+
+        try {
+            client.authPublickey(server.user, loadKey(client, key))
+        } catch (e: Exception) {
+            client.disconnect()
+            throw IllegalStateException("Auth failed: ${e.message}")
+        }
+
+        sessions[server.id] = client
+        server.id
     }
-    sessions[server.id] = client
-    server.id
-  }
 
-  suspend fun connectWithKey(host: String, port: Int, user: String, privateKey: String): SSHClient = withContext(Dispatchers.IO) {
-    val client = SSHClient()
-    addTofuVerifier(client, host, port)
-    try {
-      client.connect(host, port)
-    } catch (e: Exception) {
-      throw IllegalStateException("Connect failed to $host:$port — ${e.message ?: e.javaClass.simpleName}")
+    suspend fun connectWithKey(
+        host: String,
+        port: Int,
+        user: String,
+        privateKey: String
+    ): SSHClient = withContext(Dispatchers.IO) {
+
+        val client = SSHClient()
+        addTofuVerifier(client, host, port)
+
+        client.connect(host, port)
+
+        try {
+            client.authPublickey(user, loadKey(client, privateKey))
+        } catch (e: Exception) {
+            client.disconnect()
+            throw IllegalStateException("Auth failed: ${e.message}")
+        }
+
+        client
     }
-    try {
-      client.authPublickey(user, loadKey(client, privateKey))
-    } catch (e: Exception) {
-      client.disconnect()
-      throw IllegalStateException("SSH auth failed: ${e.message}")
+
+    suspend fun exec(
+        serverId: String,
+        command: String,
+        timeout: Int = 30
+    ): ExecResult = withContext(Dispatchers.IO) {
+
+        val start = System.currentTimeMillis()
+
+        val client = sessions[serverId]
+            ?: throw IllegalStateException("No active session: $serverId")
+
+        val session = client.startSession()
+
+        try {
+            val cmd = session.exec(command)
+            cmd.join(timeout.toLong(), TimeUnit.SECONDS)
+
+            ExecResult(
+                stdout = IOUtils.readFully(cmd.inputStream).toString(Charsets.UTF_8).trimEnd(),
+                stderr = IOUtils.readFully(cmd.errorStream).toString(Charsets.UTF_8).trimEnd(),
+                exitCode = cmd.exitStatus ?: -1,
+                durationMs = System.currentTimeMillis() - start
+            )
+        } finally {
+            session.close()
+        }
     }
-    client
-  }
 
-  suspend fun exec(serverId: String, command: String, timeout: Int = 30): ExecResult = withContext(Dispatchers.IO) {
-    val client = sessions[serverId] ?: throw IllegalStateException("No active session: $serverId")
-    val session = client.startSession()
-    try {
-      val cmd = session.exec(command)
-      cmd.join(timeout.toLong(), TimeUnit.SECONDS)
-      val stdout = IOUtils.readFully(cmd.inputStream).toString(Charsets.UTF_8)
-      val stderr = IOUtils.readFully(cmd.errorStream).toString(Charsets.UTF_8)
-      val exitCode = cmd.exitStatus ?: -1
-      ExecResult(stdout.trimEnd(), stderr.trimEnd(), exitCode)
-    } finally {
-      session.close()
+    fun disconnect(serverId: String) {
+        sessions.remove(serverId)?.disconnect()
     }
-  }
 
-  suspend fun scpTo(serverId: String, localPath: String, remotePath: String) = withContext(Dispatchers.IO) {
-    val client = sessions[serverId] ?: throw IllegalStateException("No active session: $serverId")
-    client.newSCPFileTransfer().upload(FileSystemFile(localPath), remotePath)
-  }
+    fun disconnectAll() {
+        sessions.keys.forEach { disconnect(it) }
+    }
 
-  fun disconnect(serverId: String) {
-    sessions.remove(serverId)?.disconnect()
-  }
-
-  fun disconnectAll() {
-    sessions.keys.toList().forEach { disconnect(it) }
-  }
-
-  fun isConnected(serverId: String): Boolean = sessions[serverId]?.isConnected == true
+    fun isConnected(serverId: String): Boolean =
+        sessions[serverId]?.isConnected == true
 }
