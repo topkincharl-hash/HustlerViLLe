@@ -5,7 +5,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import com.aiope.daemon.protocol.*
-import com.aiope.daemon.core.CommandExecutor
+import com.aiope.daemon.jobs.*
+ com.aiope.daemon.core.CommandExecutor
 
 fun Application.configureRouting() {
 
