@@ -46,5 +46,54 @@ fun Application.configureRouting() {
                 )
             )
         }
-    }
+    
+ post("/api/v1/job/start") {
+    val req = call.receive<ExecRequest>()
+
+    val job = JobStore.create(req.command)
+
+    Thread {
+        StreamingExecutor.runJob(job)
+    }.start()
+
+    call.respond(
+        mapOf(
+            "jobId" to job.id,
+            "status" to job.status
+        )
+    )
 }
+
+get("/api/v1/job/{id}") {
+    val id = call.parameters["id"]!!
+    val job = JobStore.get(id)
+
+    if (job == null) {
+        call.respond(mapOf("error" to "not_found"))
+        return@get
+    }
+
+    call.respond(
+        mapOf(
+            "id" to job.id,
+            "status" to job.status,
+            "stdout" to job.stdout.toString(),
+            "stderr" to job.stderr.toString(),
+            "exitCode" to job.exitCode
+        )
+    )
+}
+
+post("/api/v1/job/{id}/kill") {
+    val id = call.parameters["id"]!!
+    val job = JobStore.get(id)
+
+    if (job != null) {
+        job.status = JobStatus.KILLED
+        JobStore.update(job)
+    }
+
+    call.respond(mapOf("status" to "killed"))
+}
+}
+
