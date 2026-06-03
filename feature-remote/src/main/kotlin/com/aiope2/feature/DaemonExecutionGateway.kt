@@ -18,7 +18,9 @@ class DaemonExecutionGateway @Inject constructor(
     private val sshFallback: com.aiope2.feature.remote.core.RemoteExecutionGateway,
     private val dao: RemoteServerDao
 ) {
-
+    suspend fun startJob(host: String,       port: Int, command: String): String
+suspend fun getJob(host: String, port: Int, jobId: String): String
+suspend fun killJob(host: String, port: Int, jobId: String): String
     suspend fun exec(
         serverId: String,
         command: String,
